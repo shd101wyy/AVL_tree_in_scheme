@@ -33,142 +33,184 @@
 	     (lambda [] height)]
 	    [(eq? msg 'set-height)
 	     (lambda [h] (set! height h))])))
-
+  
+  ;; getter
+  (define (left node) (vector-ref node 2))
+  (define (right node) (vector-ref node 3))
+  (define (key node) (vector-ref node 0))
+  (define (value node) (vector-ref node 1))
+  (define (height node) (if (null? node) -1 (vector-ref node 4)))
+  (define (parent node) (vector-ref node 5))
+  ;; setter
+  (define (set-left node v) (vector-set! node 2 v) (set-parent v node))
+  (define (set-right node v) (vector-set! node 3 v) (set-parent v node))
+  (define (set-key node v) (vector-set! node 0 v))
+  (define (set-value node v) (vector-set! node 1 v))
+  (define (set-height node v) (vector-set! node 4 v))
+  (define (set-parent node v) (if (null? node) 'done (vector-set! node 5 v)))
+  ;; make node
+  (define (make-node key value left right parent)
+    (vector key value left right (+ 1 (max (height left) (height right)))  parent))
+  ;; make root
+  (define (make-root key value) (vector key value '() '() 0 '()))
+  
+  
+  
   (define root '())
 
-  (define (find key)
-    (find_ root key))
+  (define (find k)
+    (find_ root k))
   ;; find value by key
-  (define (find_ node key)
+  (define (find_ node k)
     (if (null? node)
 	'() ;; didn't find
-	(let ([node-key ((node 'get-key))])
-	  (if (string=? node-key key)
-	      ((node 'get-value))
-	      (if (string<? key node-key)
-		  (find_ ((node 'left)) ;; < so find left
-			 key)
-		  (find_ ((node 'right)) ;; > so find right
-			 key))))
+	(let ([node-key (key node)])
+	  (if (string=? node-key k)
+	      (value node)
+	      (if (string<? k node-key)
+		  (find_ (left node) ;; < so find left
+			 k)
+		  (find_ (right node) ;; > so find right
+			 k))))
 	))
-  (define (heightOrNeg1 node)
-    (if (null? node)
-	-1
-	((node 'height))))
+ 
   ;; rotate left
   (define (rotate-left node)
     (letrec ([temp node]
-	     [node ((node 'right))]
+	     [node2 (right node)]
 	     )
-      ((temp 'set-right) ((node 'left)))
-      ((node 'set-left) temp)
+      (if (null? (parent temp)) ;; try to rotate root
+          (begin (set! root node2) ;; update root
+                 (set-parent root '())
+                 (set-right temp (left node2))
+                 (set-left node2 temp)
+                 ) 
+          ;; parent is not root
+          (begin (set-right temp (left node2))
+                 (set-left node2 temp)))
       ;; update height
-      (letrec ([max1 (if (> (heightOrNeg1 ((temp 'left)))
-			    (heightOrNeg1 ((temp 'right))))
-			 (heightOrNeg1 ((temp 'left)))
-			 (heightOrNeg1 ((temp 'right))))]
-	       [max2 (if (> (heightOrNeg1 ((node 'left)))
-			    (heightOrNeg1 ((node 'right))))
-			 (heightOrNeg1 ((node 'left)))
-			 (heightOrNeg1 ((node 'right))))]
-	       )
-	((temp 'set-height) (+ max1 1))
-	((node 'set-height) (+ max2 1))
-	) 
+      (set-height temp (+ 1 (max (height (left temp)) (height (right temp)))))
+      (set-height node2 (+ 1 (max (height (left temp)) (height (right temp)))))
       ))
   ;; rotate right
   (define (rotate-right node)
     (letrec ([temp node]
-	     [node ((node 'left))])
-      ((temp 'set-left) ((node 'right)))
-      ((node 'set-right) temp)
-      ;; update height
-      (letrec ([max1 (if (> (heightOrNeg1 ((temp 'left)))
-			    (heightOrNeg1 ((temp 'right))))
-			 (heightOrNeg1 ((temp 'left)))
-			 (heightOrNeg1 ((temp 'right))))]
-	       [max2 (if (> (heightOrNeg1 ((node 'left)))
-			    (heightOrNeg1 ((node 'right))))
-			 (heightOrNeg1 ((node 'left)))
-			 (heightOrNeg1 ((node 'right))))]
-	       )
-	((temp 'set-height) (+ max1 1))
-	((node 'set-height) (+ max2 1))
-	) 
+	     [node2 (left node)])
+       (if (null? (parent temp)) ;; try to rotate root
+          (begin (set! root node2) ;; update root
+                 (set-parent root '())
+                 (set-left temp (right node2))
+                 (set-right node2 temp)
+                 ) 
+          ;; parent is not root
+          (begin (set-left temp (right node2))
+                 (set-right node2 temp)))
+          ;; update height
+      (set-height temp (+ 1 (max (height (left temp)) (height (right temp)))))
+      (set-height node2 (+ 1 (max (height (left temp)) (height (right temp)))))
       ))
+
   ;; rotate rightLeft
   (define (rotate-right-left node)
-    (rotate-right ((node 'right)))
+    (rotate-right (right node))
     (rotate-left node))
   ;; rotate leftRight
   (define (rotate-left-right node)
-    (rotate-left ((node 'left)))
+    (rotate-left (left node))
     (rotate-right node))
   
   ;; insert
   (define (insert key value)
     (insert_ root key value '() #t))
-  (define (insert_ node key value parent left?)
+  (define (insert_ node k value parent left?)
     (if (null? root) ;; root doesn't exist
-	(set! root (Node key value))	
+	(set! root (make-root k value)) ;; set root	
 	(if (null? node) ;; node doesn't exist
 	    (if left? 
-		((parent 'set-left) (Node key value)) ;; set left
-		((parent 'set-right) (Node key value))) ;; set right
-	    (begin (if (string<? key ((node 'get-key)))
+		(set-left  parent (make-node k value '() '() parent)) ;; set left
+		(set-right parent (make-node k value '() '() parent))) ;; set right
+	    (begin (if (string<? k (key node))
 		       (begin ;; left  
-			 (insert_ ((node 'left))
-				  key
+			 (insert_ (left node)
+				  k
 				  value
 				  node
 				  #t)
-			 (letrec ([balance (- (heightOrNeg1 ((node 'left)))
-					      (heightOrNeg1 ((node 'right))))]
-				  [left-balance (- (heightOrNeg1 ((((node 'left)) 'left)))
-                                                   (heightOrNeg1 ((((node 'left)) 'right))))])
+			 (letrec ([balance (- (height (left node ))
+					      (height (right node)))]
+				  [left-balance (- (height (left (left node)))
+                                                   (height (right (left node))))])
 				  (if (= balance 2)
 				      (if (= left-balance 1)
 					  (rotate-right node)
 					  (rotate-left-right node))
                                       '())))
 		       (begin ;; right  
-			 (insert_ ((node 'right))
-				  key
+			 (insert_ (right node)
+				  k
 				  value
 				  node
 				  #f)
-			 (letrec ([balance (- (heightOrNeg1 ((node 'left)))
-					      (heightOrNeg1 ((node 'right))))]
-				  [right-balance (- (heightOrNeg1 ((((node 'right)) 'left)))
-                                                    (heightOrNeg1 ((((node 'right)) 'right))))])
+			 (letrec ([balance (- (height (left node))
+					      (height (right node)))]
+				  [right-balance (- (height (left (right node)))
+                                                    (height (right (right node))))])
 				  (if (= balance 2)
 				      (if (= right-balance 1)
 					  (rotate-left node)
 					  (rotate-right-left node))
                                       '()))))  
 		   ;; update height
-		   (let ([max (if (> (heightOrNeg1 ((node 'left)))
-				     (heightOrNeg1 ((node 'right))))
-				  (heightOrNeg1 ((node 'left)))
-				  (heightOrNeg1 ((node 'right))))])
-			 ((node 'set-height) (+ max 1)))))))  
+                   (set-height node (+ 1 (max (height (left node)) (height (right node)))))
+                   ))))  
   (lambda [msg]
     (cond [(eq? msg 'insert)
 	   (lambda [key value]
 	     (insert key value))]
 	  [(eq? msg 'ref)
 	   (lambda [key]
-	     (find key))])))
+	     (find key))]
+          [(eq? msg 'get-root)
+           (lambda [] root)])))
 
 
 ;; make avl tree
 (define x (make-avl-tree))
 ;; insert 
 ((x 'insert) "Hi" 3)
-((x 'insert) "A" 12)
-((x 'insert) "B" 15)
+((x 'insert) "B" 12)
+((x 'insert) "A" 15)
+((x 'insert) "I" 16)
+((x 'insert) "J" 17)
 ;; get
 (display ((x 'ref) "Hi"))
 (display ((x 'ref) "A"))
-(display ((x 'ref) "BBB"))
+(display ((x 'ref) "B"))
+(display ((x 'ref) "I"))
+(display ((x 'ref) "J"))
+;;(display (( ((x 'get-root)) 'left)))
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
