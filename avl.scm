@@ -162,7 +162,63 @@
                                       '()))))  
 		   ;; update height
                    (set-height node (+ 1 (max (height (left node)) (height (right node)))))
-                   ))))  
+                   )))) 
+  
+  (define (find-biggest-on-left-side node)
+    (if (null? (right node))
+        node
+        (find-biggest-on-left-side (right node))))
+  ;; remove
+  (define (remove k)
+    (remove_ k root))
+  (define (remove_ k node)
+    (if (null? node)
+        '() ;; didn't remove, key doesnt exist
+        (if (eq? (key node) k)
+            ;; find
+            (let [(null-left? (null? (left node)))
+                  (null-right? (null? (right node)))]
+              (cond [(and null-left? null-right?) ;; empty
+                     (if (null? (parent node))
+                         (set! root '()) ;; reset root
+                         (if (eq? (left (parent node)) node)
+                             (set-left (parent node) '()) ;; delete this node, left
+                             (set-right (parent node) '())))] ;; right 
+                    ;; has one child on the left side
+                    [null-right? 
+                     (if (null? (parent node))
+                         ;; update root
+                         (begin (set! root (left node))
+                                (set-parent root '()))
+                         (if (eq? (left (parent node)) node)
+                             (set-left (parent node) (left node))
+                             (set-right (parent node) (left node)))
+                         )
+                     ]
+                    ;; has one child on the right side
+                    [null-left? 
+                     (if (null? (parent node))
+                         ;; update root
+                         (begin (set! root (right node))
+                                (set-parent root '()))
+                         (if (eq? (left (parent node)) node)
+                             (set-left (parent node) (right node))
+                             (set-right (parent node) (right node)))
+                         )]
+                    [else ;; has two child this part unfinished
+                     (let [(y (find-biggest-on-left-side (left node)))]
+                       '())
+                     ]
+                    )
+                )
+            ;; unfound
+            (if (string<? k (key node))
+                (remove_ k (left node))  ;; search left
+                (remove_ k (right node)));; search right
+            ))
+   
+    )
+  
   (lambda [msg]
     (cond [(eq? msg 'insert)
 	   (lambda [key value]
