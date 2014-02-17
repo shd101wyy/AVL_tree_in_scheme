@@ -118,7 +118,27 @@
   (define (rotate-left-right node)
     (rotate-left (left node))
     (rotate-right node))
-  
+  ;; balance node
+  (define (balance node)
+    (let ([balance (- (height (left node))
+                      (height (right node)))])
+      (cond [(= balance 2) ;; adjust left side
+             (if (= 1 
+                    (- (height (left (left node)))
+                       (height (right (left node)))))
+                 (begin (rotate-right node)
+                        (rotate-left-right node))
+                 '())]
+            [(= balance -2) ;; adjust right side
+             (if (= -1
+                    (- (height (left (right node)))
+                       (height (right (right node)))))
+                 (begin (rotate-left node)
+                        (rotate-right-left node))
+                 '())]
+            [else ;; no need to adjust 
+             '()])
+      ))
   ;; insert
   (define (insert key value)
     (insert_ root key value '() #t))
@@ -136,30 +156,14 @@
 				  value
 				  node
 				  #t)
-			 (letrec ([balance (- (height (left node ))
-					      (height (right node)))]
-				  [left-balance (- (height (left (left node)))
-                                                   (height (right (left node))))])
-				  (if (= balance 2)
-				      (if (= left-balance 1)
-					  (rotate-right node)
-					  (rotate-left-right node))
-                                      '())))
+                         (balance node))
 		       (begin ;; right  
 			 (insert_ (right node)
 				  k
 				  value
 				  node
 				  #f)
-			 (letrec ([balance (- (height (left node))
-					      (height (right node)))]
-				  [right-balance (- (height (left (right node)))
-                                                    (height (right (right node))))])
-				  (if (= balance 2)
-				      (if (= right-balance 1)
-					  (rotate-left node)
-					  (rotate-right-left node))
-                                      '()))))  
+                         (balance node)))  
 		   ;; update height
                    (set-height node (+ 1 (max (height (left node)) (height (right node)))))
                    )))) 
@@ -205,12 +209,25 @@
                              (set-left (parent node) (right node))
                              (set-right (parent node) (right node)))
                          )]
-                    [else ;; has two child this part unfinished
+                    [else ;; has two child.    this part unfinished
                      (let [(y (find-biggest-on-left-side (left node)))]
-                       '())
-                     ]
-                    )
-                )
+                       (set-left y (left node)) ;; set children
+                       (set-right y (right node)) ;; set children
+                       (set-parent y (parent node)) ;; set parent
+                       (if (null? (parent node))
+                           ;; reset root
+                           (set! root y)
+                           ;; it's not root
+                           (if (eq? node (left (parent node)))
+                               [begin  ;; node is left child of parent
+                                 (set-left (parent node)
+                                           y)
+                                 (balance y)]
+                               [begin  ;; node is right child of parent
+                                 (set-right (parent node)
+                                            y)
+                                 (balance y)]))
+                       )]))
             ;; unfound
             (if (string<? k (key node))
                 (remove_ k (left node))  ;; search left
