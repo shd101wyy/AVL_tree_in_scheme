@@ -1,5 +1,5 @@
 Simple AVL tree by Yiyi Wang
-
+```
 ;; make avl tree
 (define x (make-avl-tree))
 ;; insert 
@@ -9,7 +9,7 @@ Simple AVL tree by Yiyi Wang
 ((x 'set) "I" 16)
 ((x 'set) "J" 17)
 ((x 'set) "ASD" 122)
-((x 'set) "Hi" 666) ;; change hi value
+((x 'set) "Hi" 666) ;; change "Hi" value
 ;; remove
 ((x 'remove) "J")
 ;; ref
@@ -20,3 +20,4 @@ Simple AVL tree by Yiyi Wang
 (display ((x 'ref) "J"))
 (display ((x 'ref) "A"))
 (display ((x 'ref) "ASD"))
+```
