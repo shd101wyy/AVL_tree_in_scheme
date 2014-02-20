@@ -1,7 +1,8 @@
 #lang scheme
 ;; avl tree by shd101wyy
 ;; string>? string<? string=? compare string
-
+;; simple avl tree
+;; ref set remove 
 (define (make-avl-tree)
   ;; define node
   (define (Node k v)
@@ -75,6 +76,15 @@
 	))
  
   ;; rotate left
+  ;;
+  ;; parent                      parent
+  ;;    \                             \
+  ;;      temp     =>   
+  ;;      /  \ 
+  ;; left_c   node2
+  ;;             \
+  ;;              right
+   
   (define (rotate-left node)
     (letrec ([temp node]
 	     [node2 (right node)]
@@ -86,11 +96,14 @@
                  (set-left node2 temp)
                  ) 
           ;; parent is not root
-          (begin (set-right temp (left node2))
+          (begin (set-right (parent node) node2) 
+                 (set-right temp (left node2))
                  (set-left node2 temp)))
+      ;; parent set child
+      ;;(set-right (parent temp) node2)
       ;; update height
       (set-height temp (+ 1 (max (height (left temp)) (height (right temp)))))
-      (set-height node2 (+ 1 (max (height (left temp)) (height (right temp)))))
+      (set-height node2 (+ 1 (max (height (left node2)) (height (right node2)))))
       ))
   ;; rotate right
   (define (rotate-right node)
@@ -103,11 +116,14 @@
                  (set-right node2 temp)
                  ) 
           ;; parent is not root
-          (begin (set-left temp (right node2))
+          (begin (set-left (parent node) node2) 
+                 (set-left temp (right node2))
                  (set-right node2 temp)))
-          ;; update height
+      ;; parent set child
+      ;;(set-left (parent temp) node2)
+      ;; update height
       (set-height temp (+ 1 (max (height (left temp)) (height (right temp)))))
-      (set-height node2 (+ 1 (max (height (left temp)) (height (right temp)))))
+      (set-height node2 (+ 1 (max (height (left node2)) (height (right node2)))))
       ))
 
   ;; rotate rightLeft
@@ -120,22 +136,22 @@
     (rotate-right node))
   ;; balance node
   (define (balance node)
-    (let ([balance (- (height (left node))
-                      (height (right node)))])
-      (cond [(= balance 2) ;; adjust left side
+    (let ([balance# (- (height (left node))
+                       (height (right node)))])
+      (cond [(= balance# 2) ;; adjust left side
              (if (= 1 
                     (- (height (left (left node)))
                        (height (right (left node)))))
-                 (begin (rotate-right node)
-                        (rotate-left-right node))
-                 '())]
-            [(= balance -2) ;; adjust right side
+                 (rotate-right node)
+                 (rotate-left-right node)
+                 )]
+            [(= balance# -2) ;; adjust right side
              (if (= -1
                     (- (height (left (right node)))
                        (height (right (right node)))))
-                 (begin (rotate-left node)
-                        (rotate-right-left node))
-                 '())]
+                 (rotate-left node)
+                 (rotate-right-left node)
+                 )]
             [else ;; no need to adjust 
              '()])
       ))
@@ -149,24 +165,30 @@
 	    (if left? 
 		(set-left  parent (make-node k value '() '() parent)) ;; set left
 		(set-right parent (make-node k value '() '() parent))) ;; set right
-	    (begin (if (string<? k (key node))
-		       (begin ;; left  
-			 (insert_ (left node)
-				  k
-				  value
-				  node
-				  #t)
-                         (balance node))
-		       (begin ;; right  
-			 (insert_ (right node)
-				  k
-				  value
-				  node
-				  #f)
-                         (balance node)))  
-		   ;; update height
-                   (set-height node (+ 1 (max (height (left node)) (height (right node)))))
-                   )))) 
+            (if (string=? k (key node))
+                ;; same
+                (set-value node value)
+                ;; not same
+                (begin (if (string<? k (key node))
+                           (begin ;; left  
+                             (insert_ (left node)
+                                      k
+                                      value
+                                      node
+                                      #t)
+                             (balance node))
+                           (begin ;; right  
+                             (insert_ (right node)
+                                      k
+                                      value
+                                      node
+                                      #f)
+                             (balance node)))  
+                       ;; update height
+                       (set-height node (+ 1 (max (height (left node)) (height (right node)))))
+                       )
+                )
+            ))) 
   
   (define (find-biggest-on-left-side node)
     (if (null? (right node))
@@ -233,16 +255,18 @@
                 (remove_ k (left node))  ;; search left
                 (remove_ k (right node)));; search right
             ))
-   
     )
   
   (lambda [msg]
-    (cond [(eq? msg 'insert)
+    (cond [(eq? msg 'set)
 	   (lambda [key value]
 	     (insert key value))]
 	  [(eq? msg 'ref)
 	   (lambda [key]
 	     (find key))]
+          [(eq? msg 'remove)
+           (lambda [key]
+             (remove key))]
           [(eq? msg 'get-root)
            (lambda [] root)])))
 
@@ -250,17 +274,23 @@
 ;; make avl tree
 (define x (make-avl-tree))
 ;; insert 
-((x 'insert) "Hi" 3)
-((x 'insert) "B" 12)
-((x 'insert) "A" 15)
-((x 'insert) "I" 16)
-((x 'insert) "J" 17)
-;; get
+((x 'set) "Hi" 3)
+((x 'set) "B" 12)
+((x 'set) "A" 15)
+((x 'set) "I" 16)
+((x 'set) "J" 17)
+((x 'set) "ASD" 122)
+((x 'set) "Hi" 666) ;; change hi value
+;; remove
+((x 'remove) "J")
+;; ref
 (display ((x 'ref) "Hi"))
 (display ((x 'ref) "A"))
 (display ((x 'ref) "B"))
 (display ((x 'ref) "I"))
 (display ((x 'ref) "J"))
+(display ((x 'ref) "A"))
+(display ((x 'ref) "ASD"))
 ;;(display (( ((x 'get-root)) 'left)))
 
 
