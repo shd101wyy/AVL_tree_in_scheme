@@ -296,9 +296,12 @@
 
 
 
-
-
-
+;;(define (ref v)
+;;  (vector v))
+;;(define (deref v)
+;;  (vector-ref v 0))
+;;(define (ref-set! v new-v)
+;;  (vector-set! v 0 new-v))
 
 
 
